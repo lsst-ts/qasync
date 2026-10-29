@@ -407,7 +407,6 @@ class _QEventLoop:
             self.__log_debug("Qt event loop ended with result %s", rslt)
             return rslt
         finally:
-            asyncio.events._set_running_loop(None)
             self._after_run_forever()
             self.__is_running = False
 
@@ -433,6 +432,9 @@ class _QEventLoop:
         self.__app.eventDispatcher().processEvents(
             AllEvents
         )  # run loop one last time to process all the events
+        # See the following issue for the details:
+        # https://github.com/CabbageDevelopment/qasync/issues/176
+        asyncio.events._set_running_loop(None)
         if not future.done():
             raise RuntimeError("Event loop stopped before Future completed.")
 
