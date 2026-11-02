@@ -430,9 +430,15 @@ class _QEventLoop:
             self.run_forever()
         finally:
             future.remove_done_callback(stop)
-        self.__app.eventDispatcher().processEvents(
-            AllEvents
-        )  # run loop one last time to process all the events
+        # Process remaining Qt events. We must temporarily restore the
+        # running loop because timer callbacks invoked by processEvents
+        # (e.g. task wakeups) require it to be set (Python 3.14+ enforces
+        # this in the C _asyncio module's enter_task check).
+        asyncio.events._set_running_loop(self)
+        try:
+            self.__app.eventDispatcher().processEvents(AllEvents)
+        finally:
+            asyncio.events._set_running_loop(None)
         if not future.done():
             raise RuntimeError("Event loop stopped before Future completed.")
 
