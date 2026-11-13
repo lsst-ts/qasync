@@ -1,0 +1,57 @@
+{% set name = "qasync" %}
+{% set version = "0.29.0a1" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  path: ../
+
+build:
+  script_env:
+    - QT_API=PySide6
+    - QT_QPA_PLATFORM=offscreen
+    - PYTEST_QT_API=PySide6
+  noarch: python
+  script: {{ PYTHON }} -m pip install --no-deps --ignore-installed .
+  string: "py{{ PY_VER | replace('.', '') }}{{ PKG_HASH }}_{{ PKG_BUILDNUM }}"
+
+test:
+  requires:
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - {{ cdt('mesa-dri-drivers') }}  # [linux]
+    - {{ cdt('libselinux') }}  # [linux]
+    - {{ cdt('libxdamage') }}  # [linux]
+    - {{ cdt('libxxf86vm') }}  # [linux]
+    - {{ cdt('libxext') }}     # [linux]
+    - {{ cdt('xorg-x11-server-Xvfb')}}  # [linux]
+    - pyside6
+    - pytest-qt
+    - pytest-xvfb
+  source_files:
+    - tests
+    - pyproject.toml
+  commands:
+    - pytest
+
+requirements:
+  host:
+    - python {{ python }}
+    - pip
+    - uv-build
+    - pytest-runner
+    - xorg-libxfixes # [linux]
+    - xcb-util-cursor # [linux]
+  build:
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - {{ cdt('mesa-dri-drivers') }}  # [linux]
+    - {{ cdt('libselinux') }}  # [linux]
+    - {{ cdt('libxdamage') }}  # [linux]
+    - {{ cdt('libxxf86vm') }}  # [linux]
+    - {{ cdt('libxext') }}     # [linux]
+    - python {{ python }}
+  run:
+    - python {{ python }}
+    - pandas
+    - pyside6

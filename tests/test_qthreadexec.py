@@ -20,7 +20,16 @@ def disable_executor_logging():
     keep references to objects in the scope that logging was called in.
     To avoid issues with tests targeting stale references,
     we disable logging for QThreadExecutor and _QThreadWorker classes.
+
+    Note that `propagate = False` alone is not enough: pytest's log capturing
+    attaches its capture handler directly to non-propagating loggers too (so
+    their records still show up in the "Captured log call" report), and that
+    handler keeps a strong reference to every captured LogRecord, including
+    any objects passed as logging arguments. Raising the logger level above
+    DEBUG ensures the debug log calls (and their argument references) are
+    never turned into LogRecord objects in the first place.
     """
+    previous_levels = dict()
     for cls in (qasync.QThreadExecutor, qasync._QThreadWorker):
         logger_name = cls.__qualname__
         if cls.__module__ is not None:
@@ -28,6 +37,13 @@ def disable_executor_logging():
         logger = logging.getLogger(logger_name)
         logger.addHandler(logging.NullHandler())
         logger.propagate = False
+        previous_levels[logger] = logger.level
+        logger.setLevel(logging.WARNING)
+
+    yield
+
+    for logger, level in previous_levels.items():
+        logger.setLevel(level)
 
 
 @pytest.fixture
